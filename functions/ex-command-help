@@ -1,8 +1,36 @@
-case $1 in
+# vim:ft=zsh
+function -zle-widget-help() {
+  local widget=''
+  if [[ ${(Mk)widgets:#$1} ]]; then
+      command -v ul >/dev/null || { print "\nInstall util-linux" ; return }
+      widget="$(command awk -v pat="$1" 'BEGIN {
+  esc = "\033\\[1m"
+  regex = "(" esc ")?" pat
+  printing = 0
+}
+{
+  if (!printing && $0 ~ regex) {
+    printing = 1
+  } else if (printing && $0 ~ /^ {7,8}[^ ]/) {
+    exit
+  }
+  if (printing) print}' < <(man zshzle | ul))"
 
-(|:)s(|ubstitute))
-print -Pr '
-:%Bs[ubstitute]%b%F{blue}/%f%F{red}pattern%f%F{blue}/%f%F{red}replacement%f[%F{blue}/%f%F{green}flags%f]
+    if [ ${#widget} -ge 2 ]; then
+      print "\n$widget"
+      printf '%0.s\n' {1..$(( ${#${(f)widget}} + 4 ))}
+    else
+      print "\n$0: $1 is a Non-Native zle widget.\n$(whence -v "$(echo ${widgets[$1]:5})" 2>/dev/null)
+      "
+      printf '%0.s\n' {1..$(( ${#${(f)widget}} + 4 ))}
+    fi
+  fi
+}
+
+case $1 in
+  (|:)s(|ubstitute))
+    print -Pr '
+    :%Bs[ubstitute]%b%F{blue}/%f%F{red}pattern%f%F{blue}/%f%F{red}replacement%f[%F{blue}/%f%F{green}flags%f]
 	The %F{blue}/pattern delimiter/%f can be any non-alphanumeric character other than %B&%b.
 	Any \$parameters, \$(command substitutions), etc. in %F{red}replacment%f are expanded.
 	In all %F{green}mode%fs except %F{green}fixed%f, the %B&%b character will be replaced with the whole
@@ -19,19 +47,12 @@ print -Pr '
 	  %Bi%b: (PCRE|glob only) Replace %Bcase-insensitively%b
 	  %BI%b: Replace %Bcase-sensitively%b
 	  %Bp%b: Treat %F{red}pattern%f as a %BPCRE%b.
-' | less -R
-zle -R
-zle redisplay
-;;
 
-*)
-if [[ ${(Mk)widgets:#$1} ]]; then
-	zle -M "$0: $1 is a zle widget. See zshzle(1)"
-else
-	zle -M "$0: Unknown command: $1"
-fi
 
+
+
+    '
+  ;;
+  *) -zle-widget-help $1
+  ;;
 esac
-
-
-# vim:ft=zsh
