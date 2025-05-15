@@ -1,8 +1,34 @@
-case $1 in
+function -zle-widget-help() {
+  local widget
+  widget=''
+  if [[ ${(Mk)widgets:#$1} ]]; then
+      command -v ul >/dev/null || { zle -M "Install util-linux" ; return }
+      widget="$(command awk -v pat="$1" 'BEGIN {
+      esc = "\033\\[1m"
+      regex = "(" esc ")?" pat
+      }
+      $0 ~ regex {
+        printing = 1
+      }
+      printing {
+        print
+        if ($0 == "") exit
+        } ' < <(command man zshzle | ul))"
+    if [ ${#widget} -ge 2 ]; then
+      print -- $widget
+    else
+      zle -M ""$(whence -v "$(echo ${widgets[$func]:5})" 2>/dev/null)""
+      zle -M "$0: $1 is a Non-Native zle widget."
+    fi
+  else
+      zle -M "$0: Unknown command: $1"
+  fi
+}
 
-(|:)s(|ubstitute))
-print -Pr '
-:%Bs[ubstitute]%b%F{blue}/%f%F{red}pattern%f%F{blue}/%f%F{red}replacement%f[%F{blue}/%f%F{green}flags%f]
+case $1 in
+  (|:)s(|ubstitute))
+    print -Pr '
+    :%Bs[ubstitute]%b%F{blue}/%f%F{red}pattern%f%F{blue}/%f%F{red}replacement%f[%F{blue}/%f%F{green}flags%f]
 	The %F{blue}/pattern delimiter/%f can be any non-alphanumeric character other than %B&%b.
 	Any \$parameters, \$(command substitutions), etc. in %F{red}replacment%f are expanded.
 	In all %F{green}mode%fs except %F{green}fixed%f, the %B&%b character will be replaced with the whole
@@ -18,19 +44,14 @@ print -Pr '
 	  %B%%%b: Replace %Bglobally%b within the buffer.
 	  %Bi%b: (PCRE|glob only) Replace %Bcase-insensitively%b
 	  %BI%b: Replace %Bcase-sensitively%b
-	  %Bp%b: Treat %F{red}pattern%f as a %BPCRE%b.
-' | less -R
-zle -R
-zle redisplay
-;;
-
-*)
-if [[ ${(Mk)widgets:#$1} ]]; then
-	zle -M "$0: $1 is a zle widget. See zshzle(1)"
-else
-	zle -M "$0: Unknown command: $1"
-fi
-
+	  %Bp%b: Treat %F{red}pattern%f as a %BPCRE%b.'
+    # zle -R
+    # zle redisplay
+  ;;
+  *) -zle-widget-help $1
+    zle -R
+    zle redisplay
+  ;;
 esac
 
 
